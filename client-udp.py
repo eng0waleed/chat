@@ -1,4 +1,6 @@
 from socket import *
+import threading
+
 HOST = 'localhost'
 PORT = 5000
 my_socket = socket(AF_INET, SOCK_DGRAM)
@@ -13,6 +15,7 @@ source_of_last_received_message = ""
 current_message = ""
 contacts_list = []
 alive_interval = 0
+interval_thread = ""
 
 
 def format_message(dest_id, tag, message):
@@ -151,3 +154,24 @@ def set_alive_interval(interval):
     """
     interval = int(interval)
     alive_interval = interval
+    alive_message = format_message("-SERVER-", "Alive", "")
+    if(interval_thread != ""):
+        interval_thread.stop()
+    interval_thread = set_interval(send_message(alive_message), alive_interval)
+    
+    
+def set_interval(send_alive, interval):
+    """equivalence to setInterval but in python, it will call send_alive each interval
+
+        Args:
+        send_alive (function): the function to send alive message
+        interval (number): the interval
+
+        return: the thread that will work on sending alive messages
+    """
+    def recursive_interval():
+        set_interval(send_alive, interval)
+        send_alive()
+    created_thread = threading.Timer(interval, recursive_interval)
+    created_thread.start()
+    return created_thread
