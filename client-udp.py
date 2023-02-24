@@ -130,7 +130,6 @@ def set_online_contact_list(list):
 
         return: nothing
     """
-
     num_of_contacts = list/8
     contacts_list = []
     for c in num_of_contacts:
@@ -138,3 +137,16 @@ def set_online_contact_list(list):
         end_index = start_index + 8
         contact = list[start_index:end_index]
         contacts_list.append(contact)
+
+
+
+def set_alive_interval(interval):
+    """set the interval to send alive message
+
+        Args:
+        interval (String): the interval in string
+
+        return: nothing
+    """
+    interval = int(interval)
+    alive_interval = interval
