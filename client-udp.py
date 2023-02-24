@@ -95,8 +95,8 @@ def handle_received_message(message):
     msg_source_id = message[8:16]
     msg_prefix = message[16:29].strip().split("-")
     msg_tag = msg_prefix[0]
-    msg_num = msg_prefix[1].split("/")[0]
-    msg_total = msg_prefix[1].split("/")[1]
+    msg_num = int(msg_prefix[1].split("/")[0])
+    msg_total = int(msg_prefix[1].split("/")[1])
     msg = message[29:256]
     
     tag_of_last_received_message = msg_tag
@@ -118,7 +118,7 @@ def handle_received_message(message):
         elif(msg_tag == "aliveT"):
             set_alive_interval(msg)
         elif(msg_tag == "error"):
-            handle_received_error(msg)
+            print("[{}][error]: {}".format(msg_source_id, msg))
         else:
             print("[{}][unknown type of message]: {}".format(msg_source_id, msg))
     
@@ -219,3 +219,18 @@ def quit():
     interval_thread = ""
 
 
+def send_message_to_client(message, dest_id):
+    """format the message and the send the message/s to the server with the client_id,
+        tag = General
+
+        Args:
+            dest_id (String): the id of the destination
+            message (String): the message itself
+
+
+        return: nothing
+    """
+    messages = format_message(dest_id, "General", message)
+    for m in messages:
+        send_message(m)
+    
