@@ -186,3 +186,13 @@ def connect_to_server():
     send_message(connect_message)
 
 
+
+def get_contacts_list():
+    """send list message to the server
+
+        Args:
+
+        return: nothing
+    """
+    list_message = format_message("-SERVER-","list","")
+    send_message(list_message)
