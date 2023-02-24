@@ -188,11 +188,34 @@ def connect_to_server():
 
 
 def get_contacts_list():
-    """send list message to the server
+    """send List message to the server
 
         Args:
 
         return: nothing
     """
-    list_message = format_message("-SERVER-","list","")
+    list_message = format_message("-SERVER-","List","")
     send_message(list_message)
+    
+
+def quit():
+    """send Quit message to the server and stop the socket and the interval thread, also clear all variables
+
+        Args:
+
+        return: nothing
+    """
+    
+    quit_message = format_message("-SERVER-","Quit", "")
+    send_message(quit_message)
+    interval_thread.stop()
+    my_socket.close
+    remaining_messages = 0
+    tag_of_last_received_message = ""
+    source_of_last_received_message = ""
+    current_message = ""
+    contacts_list = []
+    alive_interval = 0
+    interval_thread = ""
+
+
