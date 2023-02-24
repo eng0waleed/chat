@@ -124,7 +124,7 @@ def handle_received_message(message):
     
 
 def set_online_contact_list(list):
-    """get contacts out of the message and set them in contacts_list
+    """get contacts out of the message and set them in contacts_list, and print them
 
         Args:
         list (String): contacts in a string(everyone of them is 8 bytes)
@@ -133,13 +133,15 @@ def set_online_contact_list(list):
     """
     num_of_contacts = list/8
     contacts_list = []
+    print("====================")
+    print("Your contacts list :")
+
     for c in num_of_contacts:
         start_index = c*8
         end_index = start_index + 8
         contact = list[start_index:end_index]
         contacts_list.append(contact)
-
-
+        print(c+". "+contact)
 
 def set_alive_interval(interval):
     """set the interval to send alive message
@@ -217,6 +219,7 @@ def quit():
     contacts_list = []
     alive_interval = 0
     interval_thread = ""
+    print("You have quitted the app")
 
 
 def send_message_to_client(message, dest_id):
@@ -234,3 +237,37 @@ def send_message_to_client(message, dest_id):
     for m in messages:
         send_message(m)
     
+
+
+def handle_user_command(input):
+    """handle the commands written by the user
+
+        Args:
+            input (String): the user input
+
+
+        return: nothing
+    """
+
+    if(input == "@List"):
+        get_contacts_list()
+    elif(input == "@Quit"):
+        quit()
+    elif(input == "-help"):
+        show_help()
+    else:
+        print("The inserted command is not correct, to get help write -help")
+
+
+
+def show_help():
+    """show the list of commands that the user can use,
+
+        Args:
+            
+
+        return: nothing
+    """
+    print("Welcome to chatClient helper \n you can enter one of the following commands:")
+    print("1- @List - to get the list of online contacts")
+    print("2- @Quit - to quit the app")
