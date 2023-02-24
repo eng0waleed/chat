@@ -12,6 +12,7 @@ tag_of_last_received_message = ""
 source_of_last_received_message = ""
 current_message = ""
 contacts_list = []
+alive_interval = 0
 
 
 def format_message(dest_id, tag, message):
