@@ -11,6 +11,8 @@ remaining_messages = 0
 tag_of_last_received_message = ""
 source_of_last_received_message = ""
 current_message = ""
+contacts_list = []
+
 
 def format_message(dest_id, tag, message):
     """formatting the message to be "dest_idMy_id(tag-1/1)message\0" with length of 256 bytes  
@@ -120,3 +122,19 @@ def handle_received_message(message):
             print("[{}][unknown type of message]: {}".format(msg_source_id, msg))
     
 
+def set_online_contact_list(list):
+    """get contacts out of the message and set them in contacts_list
+
+        Args:
+        list (String): contacts in a string(everyone of them is 8 bytes)
+
+        return: nothing
+    """
+
+    num_of_contacts = list/8
+    contacts_list = []
+    for c in num_of_contacts:
+        start_index = c*8
+        end_index = start_index + 8
+        contact = list[start_index:end_index]
+        contacts_list.append(contact)
