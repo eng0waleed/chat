@@ -3,10 +3,7 @@ import threading
 
 HOST = 'localhost'
 PORT = 5000
-my_socket = socket(AF_INET, SOCK_DGRAM)
-my_socket.sendto(''.encode(), (HOST, PORT))  # send some data
-data = my_socket.recvfrom(1024)     # receive the response
-print(data[0].decode())              # print the result
+my_socket = ""
 
 my_client_id = "1".ljust(8, '\0')
 remaining_messages = 0
@@ -175,3 +172,17 @@ def set_interval(send_alive, interval):
     created_thread = threading.Timer(interval, recursive_interval)
     created_thread.start()
     return created_thread
+
+
+def connect_to_server():
+    """create socket and send connect message to the server
+
+        Args:
+
+        return: nothing
+    """
+    my_socket = socket(AF_INET, SOCK_DGRAM)
+    connect_message = format_message("-SERVER-", "Connect", "")
+    send_message(connect_message)
+
+
