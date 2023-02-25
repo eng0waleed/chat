@@ -15,7 +15,7 @@ test_client = {"clientId": "", "clientAddress": ""}
 def receive_messages():
     while True:
         message, addr = s.recvfrom(1024)
-        handle_received_message(message, addr)
+        handle_received_message(message.decode(), addr)
 
 
 def handle_received_message(message, address):
@@ -27,12 +27,13 @@ def handle_received_message(message, address):
         return: nothing
     """
     #@Todo: handle duplicated client_id
+    print(message)
     msg_dest_id = message[0:8]
     msg_source_id = message[8:16]
     msg_prefix = message[16:29].strip().split("-")
     msg_tag = msg_prefix[0]
-    msg_num = int(msg_prefix[1].split("/")[0])
-    msg_total = int(msg_prefix[1].split("/")[1])
+    msg_num = msg_prefix[1].split("/")[0]
+    msg_total = msg_prefix[1].split("/")[1]
     msg = message[29:256]
     
     if(msg_tag == "Connect"):
@@ -46,7 +47,7 @@ def handle_received_message(message, address):
       for c in test_clients :
          if(c.clientId == msg_dest_id):
            dest_address =  c.clientAddress
-      send_to_client(dest_address, message)
+      send_to_client(address, message)
       
       
 def send_to_client(client, message):

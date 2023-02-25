@@ -5,7 +5,7 @@ HOST = 'localhost'
 PORT = 5000
 my_socket = socket(AF_INET, SOCK_DGRAM)
 
-my_client_id = "1".ljust(8, '\0')
+my_client_id = "2".ljust(8, '\0')
 remaining_messages = 0
 tag_of_last_received_message = ""
 source_of_last_received_message = ""
@@ -43,14 +43,15 @@ def format_message(dest_id, tag, message):
         raise Exception("destination error: destination id is required")
 
     if(message_length > chunk_length):
-        number_of_chunks = message_length / chunk_length  
+        number_of_chunks = message_length / chunk_length
         current_index = 0
 
         for i in number_of_chunks:
             temp_message = ""
-            message_prefix = "({}-{}/{})".format(tag, i, number_of_chunks).ljust(12, '\0')
+            message_prefix = "({}-{}/{})".format(tag, i,
+                                                 number_of_chunks).ljust(12, '\0')
             next_index = current_index + chunk_length
-            
+
             if(current_index >= message_length):
                 break
             elif((current_index + chunk_length) > message_length):
@@ -60,16 +61,17 @@ def format_message(dest_id, tag, message):
                 ).ljust(256, '\0')
             else:
                 temp_message = temp_message = (
-                    "{}{}{}{}".format(dest_id,my_client_id,message_prefix,
-                    message[current_index:next_index])
+                    "{}{}{}{}".format(dest_id, my_client_id, message_prefix,
+                                      message[current_index:next_index])
                 ).ljust(256, '\0')
-                
+
             messages.append(temp_message)
     else:
-        temp_message = "{}{}{}{}".format(dest_id, my_client_id , "({}-{}/{})".format(tag, 1, 1).ljust(12, '\0') , message)
+        temp_message = "{}{}{}{}".format(
+            dest_id, my_client_id, "({}-{}/{})".format(tag, 1, 1).ljust(12, '\0'), message)
         messages.append(temp_message)
-    
-    return messages            
+
+    return messages
 
 
 def send_message(formatted_message):
@@ -81,7 +83,7 @@ def send_message(formatted_message):
         return: nothing
     """
     my_socket.sendto(formatted_message.encode(), (HOST, PORT))
-    
+
 
 def handle_received_message(message):
     """collect messages and process them
@@ -103,7 +105,7 @@ def handle_received_message(message):
     tag_of_last_received_message = msg_tag
     source_of_last_received_message = msg_source_id
     remaining_messages = 0
-    
+
     if(msg_num == 1):
         current_message = msg
     else:
@@ -113,7 +115,7 @@ def handle_received_message(message):
         remaining_messages = msg_total - msg_num
     elif(msg_total - msg_num == 0):
         print("[{}][{}]:{}".format(msg_source_id, msg_tag, current_message))
-        
+
         if(msg_tag == "list"):
             set_online_contact_list(current_message)
         elif(msg_tag == "aliveT"):
@@ -122,7 +124,7 @@ def handle_received_message(message):
             print("[{}][error]: {}".format(msg_source_id, msg))
         else:
             print("[{}][unknown type of message]: {}".format(msg_source_id, msg))
-    
+
 
 def set_online_contact_list(list):
     """get contacts out of the message and set them in contacts_list, and print them
@@ -144,6 +146,7 @@ def set_online_contact_list(list):
         contacts_list.append(contact)
         print(c+". "+contact)
 
+
 def set_alive_interval(interval):
     """set the interval to send alive message
 
@@ -157,9 +160,10 @@ def set_alive_interval(interval):
     alive_message = format_message("-SERVER-", "Alive", "")
     if(interval_thread != ""):
         interval_thread.stop()
-    interval_thread = set_interval(send_message(alive_message[0]), alive_interval)
-    
-    
+    interval_thread = set_interval(
+        send_message(alive_message[0]), alive_interval)
+
+
 def set_interval(send_alive, interval):
     """equivalence to setInterval but in python, it will call send_alive each interval
 
@@ -189,7 +193,6 @@ def connect_to_server():
     send_message(connect_message[0])
 
 
-
 def get_contacts_list():
     """send List message to the server
 
@@ -197,9 +200,9 @@ def get_contacts_list():
 
         return: nothing
     """
-    list_message = format_message("-SERVER-","List","")
+    list_message = format_message("-SERVER-", "List", "")
     send_message(list_message[0])
-    
+
 
 def quit():
     """send Quit message to the server and stop the socket and the interval thread, also clear all variables
@@ -208,8 +211,8 @@ def quit():
 
         return: nothing
     """
-    
-    quit_message = format_message("-SERVER-","Quit", "")
+
+    quit_message = format_message("-SERVER-", "Quit", "")
     send_message(quit_message[0])
     interval_thread.stop()
     my_socket.close
@@ -237,7 +240,6 @@ def send_message_to_client(message, dest_id):
     messages = format_message(dest_id, "General", message)
     for m in messages:
         send_message(m)
-    
 
 
 def handle_user_command(command):
@@ -265,7 +267,6 @@ def handle_user_command(command):
     show_available_options()
 
 
-
 def show_help():
     """show the list of commands that the user can use,
 
@@ -285,6 +286,7 @@ def receive_messages():
         message = my_socket.recvfrom(1024)
         handle_received_message(message)
 
+
 def show_available_options():
     print("=============")
     print("1- to get the contact list enter @List /n")
@@ -292,6 +294,7 @@ def show_available_options():
     print("3- send message to a client enter @message /n")
     choice = input("Enter your selected option : ")
     handle_user_command(choice)
+
 
 # def main():
 connect_to_server()
