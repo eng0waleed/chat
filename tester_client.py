@@ -96,9 +96,9 @@ def handle_received_message(message):
     msg_dest_id = message[0:8]
     msg_source_id = message[8:16]
     msg_prefix = message[16:29].strip().split("-")
-    msg_tag = msg_prefix[0]
-    msg_num = int(msg_prefix[1].split("/")[0])
-    msg_total = int(msg_prefix[1].split("/")[1])
+    msg_tag = msg_prefix[0][1:]
+    # msg_num = int(msg_prefix[1].strip().split("/")[0])
+    # msg_total = int(msg_prefix[1].strip().split("/")[1])
     msg = message[29:256]
     print("[{}]: {}".format(msg_source_id, msg))
 
@@ -106,24 +106,24 @@ def handle_received_message(message):
     source_of_last_received_message = msg_source_id
     remaining_messages = 0
 
-    if(msg_num == 1):
-        current_message = msg
-    else:
-        current_message += msg
+    # if(msg_num == 1):
+    #     current_message = msg
+    # else:
+    #     current_message += msg
 
-    if(msg_num < msg_total):
-        remaining_messages = msg_total - msg_num
-    elif(msg_total - msg_num == 0):
-        print("[{}][{}]:{}".format(msg_source_id, msg_tag, current_message))
+    # if(msg_num < msg_total):
+    #     remaining_messages = msg_total - msg_num
+    # elif(msg_total - msg_num == 0):
+    #     print("[{}][{}]:{}".format(msg_source_id, msg_tag, current_message))
 
-        if(msg_tag == "list"):
-            set_online_contact_list(current_message)
-        elif(msg_tag == "aliveT"):
-            set_alive_interval(msg)
-        elif(msg_tag == "error"):
-            print("[{}][error]: {}".format(msg_source_id, msg))
-        else:
-            print("[{}][unknown type of message]: {}".format(msg_source_id, msg))
+    if(msg_tag == "list"):
+        set_online_contact_list(current_message)
+    elif(msg_tag == "aliveT"):
+        set_alive_interval(msg)
+    elif(msg_tag == "error"):
+        print("[{}][error]: {}".format(msg_source_id, msg))
+    # else:
+        # print("[{}][unknown type of message]: {}".format(msg_source_id, msg))
 
 
 def set_online_contact_list(list):
@@ -261,7 +261,7 @@ def handle_user_command(command):
     elif(command == "@message"):
         client_id = input("Enter the destination client id : ")
         message = input("Enter the message : ")
-        send_message_to_client(client_id, message)
+        send_message_to_client(message, client_id)
     else:
         print("The inserted command is not correct, to get help write @help")
     show_available_options()
@@ -283,25 +283,30 @@ def show_help():
 
 def receive_messages():
     while True:
-        message = my_socket.recvfrom(1024)
-        handle_received_message(message)
+        message, address = my_socket.recvfrom(1024)
+        handle_received_message(message.decode())
 
 
 def show_available_options():
     print("=============")
-    print("1- to get the contact list enter @List /n")
-    print("2- to quit the app enter @Quit /n")
-    print("3- send message to a client enter @message /n")
+    print("1- to get the contact list enter @List")
+    print("2- to quit the app enter @Quit")
+    print("3- send message to a client enter @message")
     choice = input("Enter your selected option : ")
     handle_user_command(choice)
 
 
 # def main():
 connect_to_server()
-receiver_thread = threading.Thread(target=receive_messages)
 print("You are connected to the server now!")
-show_available_options()
 
+receiver_thread = threading.Thread(target=receive_messages)
+sender_thread = threading.Thread(target=show_available_options)
+
+receiver_thread.start()
+sender_thread.start()
+sender_thread.join()
+receiver_thread.join()
 # choice = input("to get the contact list enter @List /n")
 
 # if __name__ == "__main__":
