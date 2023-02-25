@@ -3,7 +3,7 @@ import threading
 
 HOST = 'localhost'
 PORT = 5000
-my_socket = ""
+my_socket = socket(AF_INET, SOCK_DGRAM)
 
 my_client_id = "1".ljust(8, '\0')
 remaining_messages = 0
@@ -52,7 +52,7 @@ def format_message(dest_id, tag, message):
             next_index = current_index + chunk_length
             
             if(current_index >= message_length):
-                break;
+                break
             elif((current_index + chunk_length) > message_length):
                 temp_message = (
                     dest_id+my_client_id+message_prefix +
@@ -67,7 +67,7 @@ def format_message(dest_id, tag, message):
             messages.append(temp_message)
     else:
         temp_message = dest_id + my_client_id + "({}-{}/{})".format(tag, 1, 1).ljust(12, '\0') + message
-        messages.append(temp_message);
+        messages.append(temp_message)
     
     return messages            
 
@@ -80,7 +80,7 @@ def send_message(formatted_message):
         
         return: nothing
     """
-    my_socket.sendto(''.encode(), (HOST, PORT))
+    my_socket.sendto(formatted_message, (HOST, PORT))
     
 
 def handle_received_message(message):
@@ -253,10 +253,15 @@ def handle_user_command(input):
         get_contacts_list()
     elif(input == "@Quit"):
         quit()
-    elif(input == "-help"):
+    elif(input == "@help"):
         show_help()
+    elif(input == "@message"):
+        client_id = input("Enter the destination client id : ")
+        message = input("Enter the message : ")
+        send_message_to_client(client_id, message)
     else:
-        print("The inserted command is not correct, to get help write -help")
+        print("The inserted command is not correct, to get help write @help")
+    show_available_options()
 
 
 
@@ -271,3 +276,29 @@ def show_help():
     print("Welcome to chatClient helper \n you can enter one of the following commands:")
     print("1- @List - to get the list of online contacts")
     print("2- @Quit - to quit the app")
+    print("3- @help - to get this message")
+
+
+def receive_messages():
+    while True:
+        message = my_socket.recvfrom(1024)
+        handle_received_message(message)
+
+def show_available_options():
+    print("=============")
+    print("1- to get the contact list enter @List /n")
+    print("2- to quit the app enter @Quit /n")
+    print("3- send message to a client enter @message /n")
+    choice = input("Enter your selected option : ")
+    handle_user_command(choice)
+
+# def main():
+connect_to_server()
+receiver_thread = threading.Thread(target=receive_messages)
+print("You are connected to the server now!")
+show_available_options()
+
+# choice = input("to get the contact list enter @List /n")
+
+# if __name__ == "__main__":
+#     main()
