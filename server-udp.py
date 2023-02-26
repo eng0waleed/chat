@@ -1,5 +1,6 @@
 from socket import *
 import threading
+import time
 
 HOST = 'localhost'
 PORT = 5000
@@ -9,13 +10,21 @@ s.bind((HOST, PORT))
 
 
 test_clients = []
-test_client = {"clientID": "", "clientAddress": ""}
+test_client = {"clientID": "", "clientAddress": "", "timeStamp":""}
 my_client_id = "-SERVER-"
-
+interval_of_alive = 10
 def receive_messages():
     while True:
         message, addr = s.recvfrom(1024)
         handle_received_message(message.decode(), addr)
+
+def remove_offline_clients():
+  print("remove_offline_clients")
+  for c in test_clients:
+    if(time.time()-c["timeStamp"] > interval_of_alive):
+      print(test_clients)
+      test_clients.remove(c)
+      print(test_clients)
 
 
 def format_message(dest_id, tag, message):
@@ -94,9 +103,10 @@ def handle_received_message(message, address):
     msg_total = msg_prefix[1].split("/")[1]
     msg = message[29:256]
     if(msg_tag == "Connect"):
-      test_client = {"clientID": msg_source_id, "clientAddress": address}
+      test_client = {"clientID": msg_source_id, "clientAddress": address, "timeStamp":time.time()}
       test_clients.append(test_client)
-      alive_interval_message = format_message(msg_source_id, "aliveT", "10")
+      alive_interval_message = format_message(
+          msg_source_id, "aliveT", "{}".format(interval_of_alive))
       print(alive_interval_message[0])
       send_to_client(address, alive_interval_message[0])
 
@@ -113,11 +123,33 @@ def handle_received_message(message, address):
       list_message = format_message(msg_source_id, "List", contacts)[0]
       send_to_client(address, list_message)
       
+    elif(msg_tag == "Alive"):
+      add_alive_timestamp(msg_source_id.strip())
+      
+def add_alive_timestamp(contact):
+  new_contact = ""
+  for c in test_clients:
+    if(c["clientID"].strip() == contact):
+      print(c["timeStamp"])
+      c["timeStamp"] = time.time()
+      print(c["timeStamp"])
+  
+  
 def send_to_client(client, message):
   print("sending to "+str(client))
   s.sendto(message.encode(), client)
 
+def set_remove_offline_contacts_interval():
+    def recursive_interval():
+      set_remove_offline_contacts_interval()
+      remove_offline_clients()
+    created_thread = threading.Timer(interval_of_alive, recursive_interval)
+    created_thread.start()
+    return created_thread
+
 
 client_thread = threading.Thread(target=receive_messages)
+set_remove_offline_contacts_interval()
 client_thread.start()
 client_thread.join()
+# alive_check_thread.join()
