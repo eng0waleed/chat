@@ -17,9 +17,11 @@ alive_interval = 0
 def dummy():
     return
 
-interval_thread = threading.Timer( 10000, dummy)
+
+interval_thread = threading.Timer(10000, dummy)
 sender_thread = threading.Thread()
 receiver_thread = threading.Thread()
+
 
 def format_message(dest_id, tag, message):
     """formatting the message to be "dest_idMy_id(tag-1/1)message\0" with length of 256 bytes  
@@ -122,8 +124,8 @@ def handle_received_message(message):
     # elif(msg_total - msg_num == 0):
     #     print("[{}][{}]:{}".format(msg_source_id, msg_tag, current_message))
 
-    if(msg_tag == "list"):
-        set_online_contact_list(current_message)
+    if(msg_tag == "List"):
+        set_online_contact_list(msg)
     elif(msg_tag == "aliveT"):
         set_alive_interval(msg)
     elif(msg_tag == "error"):
@@ -140,17 +142,18 @@ def set_online_contact_list(list):
 
         return: nothing
     """
-    num_of_contacts = list/8
+    num_of_contacts = int(len(list)/8)
     contacts_list = []
     print("====================")
     print("Your contacts list :")
+    print("you have {} contact/s".format(num_of_contacts))
 
-    for c in num_of_contacts:
+    for c in range(num_of_contacts):
         start_index = c*8
         end_index = start_index + 8
         contact = list[start_index:end_index]
-        contacts_list.append(contact)
-        print(c+". "+contact)
+        contacts_list.append(contact.strip())
+        print("{}. {}".format(c+1, contact))
 
 
 def set_alive_interval(interval):
@@ -205,7 +208,7 @@ def get_contacts_list():
 
         return: nothing
     """
-    list_message = format_message("-SERVER-", "List", "")
+    list_message = format_message("-SERVER-", "@List", "")
     send_message(list_message[0])
 
 

@@ -105,7 +105,13 @@ def handle_received_message(message, address):
          if(c["clientID"].strip() == msg_dest_id):
            dest_address = c["clientAddress"]
            send_to_client(dest_address, message)
-      
+    
+    elif(msg_tag == "@List"):
+      contacts = ""
+      for c in test_clients:
+        contacts += c["clientID"].strip().ljust(8, '\0')
+      list_message = format_message(msg_source_id, "List", contacts)[0]
+      send_to_client(address, list_message)
       
 def send_to_client(client, message):
   print("sending to "+str(client))
