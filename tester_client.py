@@ -19,8 +19,8 @@ def dummy():
 
 
 interval_thread = threading.Timer(10000, dummy)
-sender_thread = threading.Thread()
-receiver_thread = threading.Thread()
+# sender_thread = threading.Thread()
+# receiver_thread = threading.Thread()
 
 
 def format_message(dest_id, tag, message):
@@ -168,6 +168,7 @@ def set_alive_interval(interval):
     alive_interval = interval
     alive_message = format_message("-SERVER-", "Alive", "")
     # interval_thread.close()
+    global interval_thread
     interval_thread = set_interval(
         send_message, alive_message[0], alive_interval)
 
@@ -223,7 +224,11 @@ def quit():
     quit_message = format_message("-SERVER-", "Quit", "")
     send_message(quit_message[0])
     # if(interval_thread != ""):
-    interval_thread.stop()
+    global interval_thread
+    global receiver_thread
+    global sender_thread
+    
+    interval_thread.cancel()
     receiver_thread.close()
     sender_thread.close()
     my_socket.close
@@ -233,9 +238,9 @@ def quit():
     current_message = ""
     contacts_list = []
     alive_interval = 0
-    interval_thread = ""
-    sender_thread = ""
-    receiver_thread = ""
+    # interval_thread = ""
+    # sender_thread = ""
+    # receiver_thread = ""
     print("You have quitted the app")
 
 

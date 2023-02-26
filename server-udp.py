@@ -26,6 +26,12 @@ def remove_offline_clients():
       test_clients.remove(c)
       print(test_clients)
 
+def handle_quit(clientId):
+  for c in test_clients:
+    if(c["clientID"] == clientId):
+      print(test_clients)
+      test_clients.remove(c)
+      print(test_clients)
 
 def format_message(dest_id, tag, message):
     """formatting the message to be "dest_idMy_id(tag-1/1)message\0" with length of 256 bytes  
@@ -126,6 +132,9 @@ def handle_received_message(message, address):
     elif(msg_tag == "Alive"):
       add_alive_timestamp(msg_source_id.strip())
       
+    elif(msg_tag == "Quit"):
+      handle_quit(msg_source_id.strip())
+      
 def add_alive_timestamp(contact):
   new_contact = ""
   for c in test_clients:
@@ -146,6 +155,7 @@ def set_remove_offline_contacts_interval():
     created_thread = threading.Timer(interval_of_alive, recursive_interval)
     created_thread.start()
     return created_thread
+
 
 
 client_thread = threading.Thread(target=receive_messages)
