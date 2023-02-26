@@ -12,8 +12,14 @@ source_of_last_received_message = ""
 current_message = ""
 contacts_list = []
 alive_interval = 0
-interval_thread = ""
 
+
+def dummy():
+    return
+
+interval_thread = threading.Timer( 10000, dummy)
+sender_thread = threading.Thread()
+receiver_thread = threading.Thread()
 
 def format_message(dest_id, tag, message):
     """formatting the message to be "dest_idMy_id(tag-1/1)message\0" with length of 256 bytes  
@@ -99,7 +105,7 @@ def handle_received_message(message):
     msg_tag = msg_prefix[0][1:]
     # msg_num = int(msg_prefix[1].strip().split("/")[0])
     # msg_total = int(msg_prefix[1].strip().split("/")[1])
-    msg = message[29:256]
+    msg = message[28:256]
     print("[{}]: {}".format(msg_source_id, msg))
 
     tag_of_last_received_message = msg_tag
@@ -158,13 +164,12 @@ def set_alive_interval(interval):
     interval = int(interval)
     alive_interval = interval
     alive_message = format_message("-SERVER-", "Alive", "")
-    if(interval_thread != ""):
-        interval_thread.stop()
+    # interval_thread.close()
     interval_thread = set_interval(
-        send_message(alive_message[0]), alive_interval)
+        send_message, alive_message[0], alive_interval)
 
 
-def set_interval(send_alive, interval):
+def set_interval(send_alive, message, interval):
     """equivalence to setInterval but in python, it will call send_alive each interval
 
         Args:
@@ -174,8 +179,8 @@ def set_interval(send_alive, interval):
         return: the thread that will work on sending alive messages
     """
     def recursive_interval():
-        set_interval(send_alive, interval)
-        send_alive()
+        set_interval(send_alive, message, interval)
+        send_alive(message)
     created_thread = threading.Timer(interval, recursive_interval)
     created_thread.start()
     return created_thread
@@ -214,7 +219,10 @@ def quit():
 
     quit_message = format_message("-SERVER-", "Quit", "")
     send_message(quit_message[0])
+    # if(interval_thread != ""):
     interval_thread.stop()
+    receiver_thread.close()
+    sender_thread.close()
     my_socket.close
     remaining_messages = 0
     tag_of_last_received_message = ""
@@ -223,6 +231,8 @@ def quit():
     contacts_list = []
     alive_interval = 0
     interval_thread = ""
+    sender_thread = ""
+    receiver_thread = ""
     print("You have quitted the app")
 
 
