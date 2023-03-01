@@ -1,31 +1,48 @@
 import socket
 import threading
 import time
+import os 
 
 HOST = 'localhost'
 PORT = 5000
-# s = socket(AF_INET, SOCK_DGRAM)
-# s.bind((HOST, PORT))
-# while True:                # forever
-serverSocket = socket.socket()
-serverSocket.bind((HOST, PORT))
-serverSocket.listen()
 
+serverSocket = ""
 test_clients = []
-test_client = {"clientID": "", "clientAddress": "", "timeStamp":"", "clientThread":""}
+test_client = {"clientID": "", "clientAddress": "",
+               "timeStamp": "", "clientThread": ""}
 my_client_id = "-SERVER-"
 interval_of_alive = 10
-def receive_messages():
-    while True:
-        message, addr = s.recvfrom(1024)
-        print("from rcv msgs"+message.decode())
-        # manage_contact = threading.Thread(maintain_client_connection)
-        handle_received_message(message.decode(), addr)
 
-def connection_reciever():
-  while True:
-    (clientConnection, clientAddress) = serverSocket.accept()
-    
+def startServer():
+    serverSocket = socket.socket()
+    serverSocket.bind((HOST, PORT))
+    serverSocket.listen()
+    print("Main PID {}".format(os.getpid()))
+    print("Main PID {}".format(threading.get_native_id()))
+    while True:
+        (clientConnection, clientAddress) = serverSocket.accept()    
+        client_t = threading.Thread(
+            target=maintain_client_connection, args=(clientAddress, clientConnection))
+        client_t.start()
+        # client_t.join()
+
+def maintain_client_connection(address, connection):
+    print("client PID {}{}".format(os.getpid(), address))
+    print("client PID {}{}".format(threading.get_native_id(), address))
+    while True:
+      message= connection.recv(1024)
+      message = message.decode()
+      print("from rcv maintain_client_connection  hi"+message)
+      msg_dest_id = message[0:8]
+      msg_source_id = message[8:16]
+      msg_prefix = message[16:29].strip().split("-")
+      msg_tag = msg_prefix[0][1:]
+      if msg_tag == "Quit" :
+        break
+      else:
+        handle_received_message(message, address)
+        break
+
 
 def remove_offline_clients():
   print("remove_offline_clients")
@@ -35,12 +52,14 @@ def remove_offline_clients():
       test_clients.remove(c)
       print(test_clients)
 
+
 def handle_quit(clientId):
   for c in test_clients:
     if(c["clientID"] == clientId):
       print(test_clients)
       test_clients.remove(c)
       print(test_clients)
+
 
 def format_message(dest_id, tag, message):
     """formatting the message to be "dest_idMy_id(tag-1/1)message\0" with length of 256 bytes  
@@ -100,6 +119,7 @@ def format_message(dest_id, tag, message):
 
     return messages
 
+
 def handle_received_message(message, address):
     """collect messages and process them
 
@@ -110,45 +130,47 @@ def handle_received_message(message, address):
     """
     #@Todo: handle duplicated client_id
     print(message)
-    msg_dest_id = message[0:8]
-    msg_source_id = message[8:16]
-    msg_prefix = message[16:29].strip().split("-")
-    msg_tag = msg_prefix[0][1:]
-    msg_num = msg_prefix[1].split("/")[0]
-    msg_total = msg_prefix[1].split("/")[1]
-    msg = message[29:256]
-    if(msg_tag == "Connect"):
-      print("new connection")
-      maintain_client_thread = threading.Thread(target=maintain_client_connection, args=(address,s))
-      test_client = {"clientID": msg_source_id, "clientAddress": address,
-                     "timeStamp": time.time(), "clientThread": maintain_client_thread}
-      test_clients.append(test_client)
-      maintain_client_thread.start()
-      maintain_client_thread.join()
-      alive_interval_message = format_message(
-          msg_source_id, "aliveT", "{}".format(interval_of_alive))
-      print(alive_interval_message[0])
-      send_to_client(address, alive_interval_message[0])
+    # msg_dest_id = message[0:8]
+    # msg_source_id = message[8:16]
+    # msg_prefix = message[16:29].strip().split("-")
+    # msg_tag = msg_prefix[0][1:]
+    # msg_num = msg_prefix[1].split("/")[0]
+    # msg_total = msg_prefix[1].split("/")[1]
+    # msg = message[29:256]
+    # if(msg_tag == "Connect"):
+    #   print("new connection")
+    #   maintain_client_thread = threading.Thread(
+    #       target=maintain_client_connection, args=(address, s))
+    #   test_client = {"clientID": msg_source_id, "clientAddress": address,
+    #                  "timeStamp": time.time(), "clientThread": maintain_client_thread}
+    #   test_clients.append(test_client)
+    #   maintain_client_thread.start()
+    #   maintain_client_thread.join()
+    #   alive_interval_message = format_message(
+    #       msg_source_id, "aliveT", "{}".format(interval_of_alive))
+    #   print(alive_interval_message[0])
+    #   send_to_client(address, alive_interval_message[0])
 
-    elif(msg_tag == "General"):
-      for c in test_clients :
-         if(c["clientID"].strip() == msg_dest_id):
-           dest_address = c["clientAddress"]
-           send_to_client(dest_address, message)
-    
-    elif(msg_tag == "@List"):
-      contacts = ""
-      for c in test_clients:
-        contacts += c["clientID"].strip().ljust(8, '\0')
-      list_message = format_message(msg_source_id, "List", contacts)[0]
-      send_to_client(address, list_message)
-      
-    elif(msg_tag == "Alive"):
-      add_alive_timestamp(msg_source_id.strip())
-      
-    elif(msg_tag == "Quit"):
-      handle_quit(msg_source_id.strip())
-      
+    # elif(msg_tag == "General"):
+    #   for c in test_clients:
+    #      if(c["clientID"].strip() == msg_dest_id):
+    #        dest_address = c["clientAddress"]
+    #        send_to_client(dest_address, message)
+
+    # elif(msg_tag == "@List"):
+    #   contacts = ""
+    #   for c in test_clients:
+    #     contacts += c["clientID"].strip().ljust(8, '\0')
+    #   list_message = format_message(msg_source_id, "List", contacts)[0]
+    #   send_to_client(address, list_message)
+
+    # elif(msg_tag == "Alive"):
+    #   add_alive_timestamp(msg_source_id.strip())
+
+    # elif(msg_tag == "Quit"):
+    #   handle_quit(msg_source_id.strip())
+
+
 def add_alive_timestamp(contact):
   new_contact = ""
   for c in test_clients:
@@ -156,11 +178,12 @@ def add_alive_timestamp(contact):
       print(c["timeStamp"])
       c["timeStamp"] = time.time()
       print(c["timeStamp"])
-  
-  
+
+
 def send_to_client(client, message):
   print("sending to "+str(client))
   s.sendto(message.encode(), client)
+
 
 def set_remove_offline_contacts_interval():
     def recursive_interval():
@@ -170,30 +193,6 @@ def set_remove_offline_contacts_interval():
     created_thread.start()
     return created_thread
 
-def maintain_client_connection(address, connection):
-    client = ""
-    for c in test_clients:
-      if c["clientAddress"] == address:
-        client = c
-    while True:
-      message, addr = connection.recvfrom(1024)
-      message = message.decode()
-      print("from rcv maintain_client_connection  "+client["clientID"]+" hi"+message)
-      msg_dest_id = message[0:8]
-      msg_source_id = message[8:16]
-      msg_prefix = message[16:29].strip().split("-")
-      msg_tag = msg_prefix[0][1:]
-      if msg_tag == "Quit" and msg_source_id == client["clientID"]:
-        handle_quit(client["clientID"].strip())
-        # client["clientThread"].s
-        break
-      elif msg_source_id == client["clientID"]:
-        handle_received_message(message, client["clientAddress"])
-        break
-        
 
-client_thread = threading.Thread(target=receive_messages)
-set_remove_offline_contacts_interval()
-client_thread.start()
-client_thread.join()
-# alive_check_thread.join()
+if __name__ == '__main__':
+    startServer()

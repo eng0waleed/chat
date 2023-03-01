@@ -1,10 +1,9 @@
-from socket import *
+# from socket import *
+import socket
 import threading
+import time
 
-HOST = 'localhost'
-PORT = 5000
-my_socket = socket(AF_INET, SOCK_DGRAM)
-
+my_socket = socket.socket()
 my_client_id = "1".ljust(8, '\0')
 remaining_messages = 0
 tag_of_last_received_message = ""
@@ -90,7 +89,7 @@ def send_message(formatted_message):
         
         return: nothing
     """
-    my_socket.sendto(formatted_message.encode(), (HOST, PORT))
+    my_socket.send(formatted_message.encode())
 
 
 def handle_received_message(message):
@@ -196,7 +195,11 @@ def connect_to_server():
 
         return: nothing
     """
-    my_socket = socket(AF_INET, SOCK_DGRAM)
+    HOST = 'localhost'
+    PORT = 5000
+    my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    my_socket.connect((HOST, PORT))
+    time.sleep(2)
     connect_message = format_message("-SERVER-", "Connect", "")
     send_message(connect_message[0])
 
@@ -296,7 +299,7 @@ def show_help():
 
 def receive_messages():
     while True:
-        message, address = my_socket.recvfrom(1024)
+        message = my_socket.recv(1024)
         handle_received_message(message.decode())
 
 
@@ -311,6 +314,7 @@ def show_available_options():
 
 # def main():
 connect_to_server()
+time.sleep(2)
 print("You are connected to the server now!")
 
 receiver_thread = threading.Thread(target=receive_messages)
