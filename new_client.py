@@ -18,7 +18,12 @@ def connect_to_server():
     HOST = 'localhost'
     PORT = 5000
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    my_socket.connect((HOST, PORT))
+    try:
+        my_socket.connect((HOST, PORT))
+    except socket.error as e:
+        print(str(e))
+    
+    my_socket.setblocking(True)
     time.sleep(2)
     connect_message = format_message("-SERVER-", "Connect", "")
     send_message(my_socket, connect_message[0])
@@ -29,7 +34,11 @@ def connect_to_server():
 
 def receive_messages(connection):
     while True:
+        print(connection)
         message = connection.recv(1024)
+        if not message:
+          connection.close()
+
         handle_received_message(message.decode())
 
 

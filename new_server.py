@@ -16,7 +16,7 @@ interval_of_alive = 10
 def startServer():
     serverSocket = socket.socket()
     serverSocket.bind((HOST, PORT))
-    serverSocket.listen()
+    serverSocket.listen(100)
     print("Main PID {}".format(os.getpid()))
     print("Main PID {}".format(threading.get_native_id()))
     while True:
