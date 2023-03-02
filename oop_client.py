@@ -2,8 +2,8 @@ import socket
 import threading
 import time
 import itertools
-id_iter = itertools.count()
-my_client_id = "{}".format(next(id_iter)).ljust(8, '\0')
+id_iter = 2
+my_client_id = "{}".format(id_iter).ljust(8, '\0')
 
 SERVER = "127.0.0.1"
 PORT = 8080
@@ -86,7 +86,7 @@ def send_message(formatted_message):
         return: nothing
     """
     print(formatted_message)
-    client.send(bytes(formatted_message, 'UTF-8'))  # formatted_message.encode())
+    client.send(formatted_message.encode())  # formatted_message.encode())
 
 
 def handle_received_message(message):

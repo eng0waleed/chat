@@ -100,16 +100,21 @@ class ClientThread(threading.Thread):
                 print(test_clients)
 
     def add_alive_timestamp(self, contact):
-        print(contact)
+        print(int(contact.replace("\x00", "").strip()))
         for c in test_clients:
-            if(c.clientID == int(contact)):
+            if(c.clientID == int(contact.replace("\x00","").strip())):
                 print(c.timeStamp)
                 c.timeStamp = time.time()
                 print(c.timeStamp)
 
-    def send_to_client(self, message):
-        print("sending to "+str(self.clientAddress))
-        self.clientSocket.send(message.encode())
+    def send_to_client(self, c, message):
+        if(c != None):
+            print("sending to "+str(c.clientAddress))
+            c.clientSocket.send(message.encode())
+        else:
+            print("sending to "+str(self.clientAddress))
+            self.clientSocket.send(message.encode())
+
 
     def receive_messages(self):
         while True:
@@ -134,17 +139,18 @@ class ClientThread(threading.Thread):
         msg_total = msg_prefix[1].split("/")[1]
         msg = message[29:256]
         if(msg_tag == "Connect"):
+            self.clientID = int(msg_source_id.replace("\x00", "").strip())
             test_clients.append(self)
             alive_interval_message = self.format_message(
                 msg_source_id, "aliveT", "{}".format(9))
             print(alive_interval_message[0])
-            self.send_to_client(alive_interval_message[0])
+            self.send_to_client(None,alive_interval_message[0])
 
         elif(msg_tag == "General"):
             for c in test_clients:
-                if(c.clientID == msg_dest_id):
+                if(c.clientID == int(msg_dest_id.replace("\x00", "").strip())):
                     # dest_address = c.clientAddress
-                    self.send_to_client(message)
+                    self.send_to_client(c,message)
 
         elif(msg_tag == "@List"):
             contacts = ""
@@ -152,7 +158,7 @@ class ClientThread(threading.Thread):
                 contacts += str(c.clientID).ljust(8, '\0')
             list_message = self.format_message(
                 msg_source_id, "List", contacts)[0]
-            self.send_to_client(list_message)
+            self.send_to_client(None,list_message)
 
         elif(msg_tag == "Alive"):
             self.add_alive_timestamp(msg_source_id.strip())
