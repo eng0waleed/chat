@@ -125,7 +125,7 @@ def handle_received_message(message):
 
     if(msg_tag == "List"):
         set_online_contact_list(msg)
-    elif(msg_tag == "aliveT"):
+    elif(msg_tag == "alive"):
         set_alive_interval(msg)
     elif(msg_tag == "error"):
         print("[{}][error]: {}".format(msg_source_id, msg))

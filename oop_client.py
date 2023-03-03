@@ -22,17 +22,7 @@ interval_thread = ""
 app_quitted = False
 
 
-
 def format_message(dest_id, tag, message):
-    """formatting the message to be "dest_idMy_id(tag-1/1)message\0" with length of 256 bytes  
-        
-        Args:
-        dest_id (String): the id of the destination
-        tag (String): the tag refer to the type of the message
-        message (String): the message itself
-        
-        return: list of generated messages
-    """
     message_length = len(message)
     dest_id_length = len(dest_id)
     tag_length = len(tag)
@@ -50,36 +40,12 @@ def format_message(dest_id, tag, message):
     else:  # throw a no destination exception
         raise Exception("destination error: destination id is required")
 
-    if(message_length > chunk_length):
-        number_of_chunks = message_length / chunk_length
-        current_index = 0
-
-        for i in number_of_chunks:
-            temp_message = ""
-            message_prefix = "({}-{}/{})".format(tag, i,
-                                                 number_of_chunks).ljust(12, '\0')
-            next_index = current_index + chunk_length
-
-            if(current_index >= message_length):
-                break
-            elif((current_index + chunk_length) > message_length):
-                temp_message = (
-                    "{}{}{}{}".format(dest_id, my_client_id, message_prefix,
-                                      message[current_index:message_length])
-                ).ljust(256, '\0')
-            else:
-                temp_message = temp_message = (
-                    "{}{}{}{}".format(dest_id, my_client_id, message_prefix,
-                                      message[current_index:next_index])
-                ).ljust(256, '\0')
-
-            messages.append(temp_message)
-    else:
-        temp_message = "{}{}{}{}".format(
-            dest_id, my_client_id, "({}-{}/{})".format(tag, 1, 1).ljust(12, '\0'), message)
-        messages.append(temp_message)
-
+    temp_message = "{}{}{}{}".format(
+        dest_id, my_client_id, "({})".format(tag).ljust(12, '\0'), message)
+    print(temp_message)
+    messages.append(temp_message)
     return messages
+
 
 
 def send_message(formatted_message):
@@ -90,7 +56,6 @@ def send_message(formatted_message):
         
         return: nothing
     """
-    print(formatted_message)
     client.send(formatted_message.encode())  # formatted_message.encode())
 
 
@@ -102,42 +67,34 @@ def handle_received_message(message):
 
         return: nothing
     """
+    global sender_thread
+    global current_message
+    # global app_quitted
     msg_dest_id = message[0:8]
     msg_source_id = message[8:16]
-    msg_prefix = message[16:28].strip().split("-")
-    msg_tag = msg_prefix[0][1:]
-    # msg_num = int(msg_prefix[1].strip().split("/")[0])
-    # msg_total = int(msg_prefix[1].strip().split("/")[1])
+    msg_prefix = message[16:28].strip()
+    msg_tag = msg_prefix.split("(")[1].split(")")[0]
     msg = message[28:256]
     print("[{}]: {}".format(msg_source_id, msg))
 
-    tag_of_last_received_message = msg_tag
-    source_of_last_received_message = msg_source_id
-    remaining_messages = 0
-
-    # if(msg_num == 1):
-    #     current_message = msg
-    # else:
-    #     current_message += msg
-
-    # if(msg_num < msg_total):
-    #     remaining_messages = msg_total - msg_num
-    # elif(msg_total - msg_num == 0):
-    #     print("[{}][{}]:{}".format(msg_source_id, msg_tag, current_message))
-
-    if(msg_tag == "List"):
+    if(msg_tag == "NVID"):
+        print("NVID [{}]: {}".format(msg_source_id, msg))
+        ask_for_new_id()
+    elif(msg_tag == "AVID"):
+        print("AVID [{}]: {}".format(msg_source_id, msg))
+        sender_thread = threading.Thread(target=show_available_options)
+        sender_thread.start()
+        sender_thread.do_run = True
+        # sender_thread.join()
+    elif(msg_tag == "List"):
         set_online_contact_list(msg)
-    elif(msg_tag == "aliveT"):
+    elif(msg_tag == "alive"):
         set_alive_interval(msg)
     elif(msg_tag == "error"):
         print("[{}][error]: {}".format(msg_source_id, msg))
     elif(msg_tag == "Quit"):
         app_quitted = True
         print("You have quitted the app")
-
-    # else:
-        # print("[{}][unknown type of message]: {}".format(msg_source_id, msg))
-
 
 def set_online_contact_list(list):
     """get contacts out of the message and set them in contacts_list, and print them
@@ -263,7 +220,6 @@ def handle_user_command(command):
 
         return: nothing
     """
-
     if(command == "@List"):
         get_contacts_list()
     elif(command == "@Quit"):
@@ -297,9 +253,9 @@ def show_help():
 def receive_messages():
     while getattr(receiver_thread,"do_run", True):
         message = client.recv(1024)
+        print("to test receive")
         handle_received_message(message.decode())
     client.close()
-
 
 def show_available_options():
     print("=============")
@@ -310,12 +266,21 @@ def show_available_options():
     handle_user_command(choice)
 
 
+def ask_for_new_id():
+    global id_iter
+    global my_client_id
+    print("==========================")
+    print("Error: the selected id is not accepted, ")
+    id_iter = int(input("Enter a new id as a digit : "))
+    my_client_id = "{}".format(id_iter).ljust(8, '\0')
+    connect_message = format_message("-SERVER-", "Connect", "")
+    send_message(connect_message[0])
+
 
 
 client.connect((SERVER, PORT))
 connect_message = format_message("-SERVER-", "Connect", "")
 send_message(connect_message[0])
-
 # while True:
 #   in_data = client.recv(1024)
 #   print("From Server :", in_data.decode())
@@ -324,13 +289,13 @@ send_message(connect_message[0])
 #   if out_data == 'bye':
 #     break
 receiver_thread = threading.Thread(target=receive_messages)
-sender_thread = threading.Thread(target=show_available_options)
+# sender_thread = threading.Thread(target=show_available_options)
 receiver_thread.start()
-sender_thread.start()
+# sender_thread.start()
 receiver_thread.do_run = True
-sender_thread.do_run = True
-sender_thread.join()
-receiver_thread.join()
+# sender_thread.do_run = True
+# sender_thread.join()
+# receiver_thread.join()
 
 
 
