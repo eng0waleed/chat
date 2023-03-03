@@ -17,6 +17,7 @@ class ClientThread(threading.Thread):
         self.clientAddress = clientAddress
         self.clientID = next(self.id_iter)
         self.timeStamp = time.time()
+        self.do_run = True
         print("New connection added: ", self.clientID)
 
     def run(self):
@@ -73,6 +74,10 @@ class ClientThread(threading.Thread):
         return messages
 
     def handle_quit(self, clientId):
+        quit_message = self.format_message("{}".format(self.clientID), "Quit", "")
+        self.send_to_client(None, quit_message[0])
+        
+
         for c in test_clients:
             if(c.clientID == clientId):
                 test_clients.remove(c)
@@ -95,6 +100,8 @@ class ClientThread(threading.Thread):
     def receive_messages(self):
         while True:
             message = self.clientSocket.recv(1024)
+            if not message:
+              break;  
             self.handle_received_message(message.decode())
 
     def handle_received_message(self, message):
@@ -140,9 +147,8 @@ class ClientThread(threading.Thread):
 def remove_offline_clients():
     for c in test_clients:
         if(time.time()-c.timeStamp > interval_of_alive):
-            print(test_clients)
             test_clients.remove(c)
-            print(test_clients)
+            print("Client {} disconnected !".format(c.clientID))
 
 def set_remove_offline_contacts_interval():
 

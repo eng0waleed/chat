@@ -16,6 +16,11 @@ source_of_last_received_message = ""
 current_message = ""
 contacts_list = []
 alive_interval = 0
+sender_thread = ""
+receiver_thread = ""
+interval_thread = ""
+app_quitted = False
+
 
 
 def format_message(dest_id, tag, message):
@@ -99,7 +104,7 @@ def handle_received_message(message):
     """
     msg_dest_id = message[0:8]
     msg_source_id = message[8:16]
-    msg_prefix = message[16:29].strip().split("-")
+    msg_prefix = message[16:28].strip().split("-")
     msg_tag = msg_prefix[0][1:]
     # msg_num = int(msg_prefix[1].strip().split("/")[0])
     # msg_total = int(msg_prefix[1].strip().split("/")[1])
@@ -126,6 +131,10 @@ def handle_received_message(message):
         set_alive_interval(msg)
     elif(msg_tag == "error"):
         print("[{}][error]: {}".format(msg_source_id, msg))
+    elif(msg_tag == "Quit"):
+        app_quitted = True
+        print("You have quitted the app")
+
     # else:
         # print("[{}][unknown type of message]: {}".format(msg_source_id, msg))
 
@@ -160,6 +169,7 @@ def set_alive_interval(interval):
 
         return: nothing
     """
+    global interval_thread
     interval = int(interval)
     alive_interval = interval
     alive_message = format_message("-SERVER-", "Alive", "")
@@ -178,8 +188,9 @@ def set_interval(send_alive, message, interval):
         return: the thread that will work on sending alive messages
     """
     def recursive_interval():
-        set_interval(send_alive, message, interval)
-        send_alive(message)
+        if(app_quitted == False):
+            set_interval(send_alive, message, interval)
+            send_alive(message)
     created_thread = threading.Timer(interval, recursive_interval)
     created_thread.start()
     return created_thread
@@ -192,7 +203,7 @@ def get_contacts_list():
 
         return: nothing
     """
-    list_message = format_message("-SERVER-", "@List", "")
+    list_message = format_message("-SERVER-", "List", "")
     send_message(list_message[0])
 
 
@@ -203,24 +214,28 @@ def quit():
 
         return: nothing
     """
-
+    global sender_thread
+    global receiver_thread
+    global interval_thread
+    global app_quitted
     quit_message = format_message("-SERVER-", "Quit", "")
     send_message(quit_message[0])
     # if(interval_thread != ""):
     # interval_thread.stop()
     # receiver_thread.close()
     # sender_thread.close()
+    alive_interval = 0
+    app_quitted = True
+    interval_thread.cancel()
+    sender_thread.do_run = False
+    receiver_thread.do_run = False
+
     client.close
     remaining_messages = 0
     tag_of_last_received_message = ""
     source_of_last_received_message = ""
     current_message = ""
     contacts_list = []
-    alive_interval = 0
-    interval_thread = ""
-    sender_thread = ""
-    receiver_thread = ""
-    print("You have quitted the app")
 
 
 def send_message_to_client(message, dest_id):
@@ -261,7 +276,8 @@ def handle_user_command(command):
         send_message_to_client(message, client_id)
     else:
         print("The inserted command is not correct, to get help write @help")
-    show_available_options()
+    if(getattr(sender_thread,"do_run", True)):
+        show_available_options()
 
 
 def show_help():
@@ -279,7 +295,7 @@ def show_help():
 
 
 def receive_messages():
-    while True:
+    while getattr(receiver_thread,"do_run", True):
         message = client.recv(1024)
         handle_received_message(message.decode())
     client.close()
@@ -311,6 +327,8 @@ receiver_thread = threading.Thread(target=receive_messages)
 sender_thread = threading.Thread(target=show_available_options)
 receiver_thread.start()
 sender_thread.start()
+receiver_thread.do_run = True
+sender_thread.do_run = True
 sender_thread.join()
 receiver_thread.join()
 
