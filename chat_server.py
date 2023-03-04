@@ -8,11 +8,12 @@ server_clients = []
 my_client_id = "-SERVER-"
 interval_of_alive = 1
 
+
 class ClientThread(threading.Thread):
     """a class that create a thread for each client to handle communication with it
     """
-    #to give the client an initial id until receive the id from the client
-    id_iter = itertools.count() 
+    # to give the client an initial id until receive the id from the client
+    id_iter = itertools.count()
 
     def __init__(self, clientAddress, clientsocket):
         """constructor of the class
@@ -68,7 +69,8 @@ class ClientThread(threading.Thread):
         Args:
             clientId (string)
         """
-        quit_message = self.format_message("{}".format(self.clientID), "Quit", "")
+        quit_message = self.format_message(
+            "{}".format(self.clientID), "Quit", "")
         self.send_to_client(None, quit_message[0])
         for c in server_clients:
             if(c.clientID == clientId):
@@ -82,7 +84,7 @@ class ClientThread(threading.Thread):
             contact (string): the if of the contact to be updated
         """
         for c in server_clients:
-            if(c.clientID == int(contact.replace("\x00","").strip())):
+            if(c.clientID == int(contact.replace("\x00", "").strip())):
                 c.timeStamp = time.time()
 
     def send_to_client(self, c, message):
@@ -97,7 +99,6 @@ class ClientThread(threading.Thread):
         else:
             self.clientSocket.send(message.encode())
 
-
     def receive_messages(self):
         """this function keep listening for client messages and pass them to the
         handle_received_message function
@@ -106,10 +107,10 @@ class ClientThread(threading.Thread):
             try:
                 message = self.clientSocket.recv(1024)
                 if not message:
-                    break;  
+                    break
             except:
                 break
-            
+
             self.handle_received_message(message.decode())
 
     def handle_received_message(self, message):
@@ -126,11 +127,12 @@ class ClientThread(threading.Thread):
         msg = message[29:256]
         if(msg_tag == "Connect"):
             alive_interval_message = self.format_message(
-            msg_source_id, "alive", "{}".format(interval_of_alive))
-            self.send_to_client(None,alive_interval_message[0])
+                msg_source_id, "alive", "{}".format(interval_of_alive))
+            self.send_to_client(None, alive_interval_message[0])
             time.sleep(2)
 
-            is_id_exist = self.is_clientid_duplicated(int(msg_source_id.replace("\x00", "").strip()))
+            is_id_exist = self.is_clientid_duplicated(
+                int(msg_source_id.replace("\x00", "").strip()))
             if is_id_exist:
                 self.ask_for_new_clientid(msg_source_id)
             else:
@@ -141,11 +143,10 @@ class ClientThread(threading.Thread):
                 for c in server_clients:
                     c.send_list_to_client()
 
-
         elif(msg_tag == "General"):
             for c in server_clients:
                 if(c.clientID == int(msg_dest_id.replace("\x00", "").strip())):
-                    self.send_to_client(c,message)
+                    self.send_to_client(c, message)
 
         elif(msg_tag == "List"):
             self.send_list_to_client()
@@ -154,7 +155,7 @@ class ClientThread(threading.Thread):
 
         elif(msg_tag == "Quit"):
             self.handle_quit(msg_source_id.strip())
-            
+
     def ask_for_new_clientid(self, dest_id):
         """if the client id is already exist it will ask the client
         to provide a new unique id
@@ -164,7 +165,7 @@ class ClientThread(threading.Thread):
         """
         message = self.format_message(dest_id, "NVID", "")[0]
         self.send_to_client(None, message)
-    
+
     def is_clientid_duplicated(self, c_id):
         """check if client id provided by the new client
         exist in the server_clients list
@@ -176,7 +177,7 @@ class ClientThread(threading.Thread):
             if c.clientID == c_id:
                 return True
         return False
-    
+
     def send_list_to_client(self):
         """send the clients list to the client
         """
@@ -187,8 +188,6 @@ class ClientThread(threading.Thread):
         list_message = self.format_message(
             msg_source_id, "List", contacts)[0]
         self.send_to_client(None, list_message)
-
-
 
 
 def remove_offline_clients():
@@ -202,7 +201,7 @@ def remove_offline_clients():
             print("Client {} disconnected !".format(c.clientID))
             for c in server_clients:
                 c.send_list_to_client()
-        
+
 
 def set_remove_offline_contacts_interval():
     """timer thread to check the clients alive timestamp periodically

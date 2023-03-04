@@ -10,10 +10,6 @@ PORT = 8080
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # my_client_id = "1".ljust(8, '\0')
-remaining_messages = 0
-tag_of_last_received_message = ""
-source_of_last_received_message = ""
-current_message = ""
 contacts_list = []
 alive_interval = 0
 sender_thread = ""
@@ -23,12 +19,17 @@ app_quitted = False
 
 
 def format_message(dest_id, tag, message):
-    message_length = len(message)
+    """this function format message in the required format
+        and the order of dest id , source id, tag, and message
+
+        Args:
+            dest_id (string)
+            tag (string)
+            message (string)
+    """
+
     dest_id_length = len(dest_id)
-    tag_length = len(tag)
     messages = []
-    chunk_length = 227  # 239-12 for prefix (tag-msg_num/total)
-    number_of_chunks = 0
 
     if(dest_id):
         if(dest_id_length > 8):  # throw a very large length exception
@@ -47,25 +48,23 @@ def format_message(dest_id, tag, message):
     return messages
 
 
-
 def send_message(formatted_message):
     """send the formatted messages to the server
-        
+
         Args:
         formatted_message (String): the formatted message
-        
+
         return: nothing
     """
     client.send(formatted_message.encode())  # formatted_message.encode())
 
 
 def handle_received_message(message):
-    """collect messages and process them
+    """this function split the message into its component
+        and then deal with it based on its tag
 
         Args:
-        message (String): the received message
-
-        return: nothing
+            message (string)
     """
     global sender_thread
     global current_message
@@ -93,6 +92,7 @@ def handle_received_message(message):
     elif(msg_tag == "Quit"):
         app_quitted = True
         print("You have quitted the app")
+
 
 def set_online_contact_list(list):
     """get contacts out of the message and set them in contacts_list, and print them
@@ -163,7 +163,9 @@ def get_contacts_list():
 
 
 def quit():
-    """send Quit message to the server and stop the socket and the interval thread, also clear all variables
+    """send Quit message to the server 
+    and stop the socket and the interval thread,
+    also clear all variables
 
         Args:
 
@@ -175,10 +177,6 @@ def quit():
     global app_quitted
     quit_message = format_message("-SERVER-", "Quit", "")
     send_message(quit_message[0])
-    # if(interval_thread != ""):
-    # interval_thread.stop()
-    # receiver_thread.close()
-    # sender_thread.close()
     alive_interval = 0
     app_quitted = True
     interval_thread.cancel()
@@ -186,15 +184,12 @@ def quit():
     receiver_thread.do_run = False
 
     client.close
-    remaining_messages = 0
-    tag_of_last_received_message = ""
-    source_of_last_received_message = ""
-    current_message = ""
     contacts_list = []
 
 
 def send_message_to_client(message, dest_id):
-    """format the message and the send the message/s to the server with the client_id,
+    """format the message and the send the 
+    message/s to the server with the client_id,
         tag = General
 
         Args:
@@ -224,13 +219,13 @@ def handle_user_command(command):
         quit()
     elif(command == "@help"):
         show_help()
-    elif(command == "@message"):
+    elif(command == "@Message"):
         client_id = input("Enter the destination client id : ")
         message = input("Enter the message : ")
         send_message_to_client(message, client_id)
     else:
         print("The inserted command is not correct, to get help write @help")
-    if(getattr(sender_thread,"do_run", True)):
+    if(getattr(sender_thread, "do_run", True)):
         show_available_options()
 
 
@@ -238,7 +233,7 @@ def show_help():
     """show the list of commands that the user can use,
 
         Args:
-            
+
 
         return: nothing
     """
@@ -249,21 +244,33 @@ def show_help():
 
 
 def receive_messages():
-    while getattr(receiver_thread,"do_run", True):
+    """this function keep listening for server messages 
+        and pass them to the handle_received_message function
+
+        if the client quit, the attribute do_run will be False
+        so the loop will break and thread stop
+    """
+    while getattr(receiver_thread, "do_run", True):
         message = client.recv(1024)
         handle_received_message(message.decode())
     client.close()
 
+
 def show_available_options():
+    """display the available options to the user
+    """
     print("=============")
     print("1- to get the contact list enter @List")
     print("2- to quit the app enter @Quit")
-    print("3- send message to a client enter @message")
+    print("3- send message to a client enter @Message")
     choice = input("Enter your selected option : ")
     handle_user_command(choice)
 
 
 def ask_for_new_id():
+    """ask user to enter new id if it exists in the server
+    and send Connect message again with the new id
+    """
     global id_iter
     global my_client_id
     print("==========================")
@@ -274,25 +281,9 @@ def ask_for_new_id():
     send_message(connect_message[0])
 
 
-
 client.connect((SERVER, PORT))
 connect_message = format_message("-SERVER-", "Connect", "")
 send_message(connect_message[0])
-# while True:
-#   in_data = client.recv(1024)
-#   print("From Server :", in_data.decode())
-#   out_data = input()
-# #   client.sendall(bytes(out_data, 'UTF-8'))
-#   if out_data == 'bye':
-#     break
 receiver_thread = threading.Thread(target=receive_messages)
-# sender_thread = threading.Thread(target=show_available_options)
 receiver_thread.start()
-# sender_thread.start()
 receiver_thread.do_run = True
-# sender_thread.do_run = True
-# sender_thread.join()
-# receiver_thread.join()
-
-
-
