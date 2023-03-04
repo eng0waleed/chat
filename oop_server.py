@@ -9,9 +9,18 @@ my_client_id = "-SERVER-"
 interval_of_alive = 1
 
 class ClientThread(threading.Thread):
-    id_iter = itertools.count()
+    """a class that create a thread for each client to handle communication with it
+    """
+    #to give the client an initial id until receive the id from the client
+    id_iter = itertools.count() 
 
     def __init__(self, clientAddress, clientsocket):
+        """constructor of the class
+
+        Args:
+            clientAddress (tuple of HOST and IP)
+            clientsocket (the socket of this client after accepting the connection)
+        """
         threading.Thread.__init__(self)
         self.clientSocket = clientsocket
         self.clientAddress = clientAddress
@@ -19,19 +28,22 @@ class ClientThread(threading.Thread):
         self.timeStamp = time.time()
         self.status = "connecting"
         self.do_run = True
-        print("New connection added: ", self.clientID)
+        print("New connection added: ", self.clientID, self.clientAddress)
 
     def run(self):
-        print("Connection from : ", self.clientAddress)
         self.receive_messages()
 
     def format_message(self, dest_id, tag, message):
-        message_length = len(message)
+        """this function format message in the required format 
+        and the order of dest id , source id, tag, and message
+
+        Args:
+            dest_id (string)
+            tag (string)
+            message (string)
+        """
         dest_id_length = len(dest_id)
-        tag_length = len(tag)
         messages = []
-        chunk_length = 227  # 239-12 for prefix (tag-msg_num/total)
-        number_of_chunks = 0
         my_client_id = "-SERVER-"
 
         if(dest_id):
@@ -50,6 +62,12 @@ class ClientThread(threading.Thread):
         return messages
 
     def handle_quit(self, clientId):
+        """this function handles the quit of the client. It will remove
+        the client object from the list, and send Quit message to the client
+
+        Args:
+            clientId (string)
+        """
         quit_message = self.format_message("{}".format(self.clientID), "Quit", "")
         self.send_to_client(None, quit_message[0])
         for c in server_clients:
@@ -57,11 +75,23 @@ class ClientThread(threading.Thread):
                 server_clients.remove(c)
 
     def add_alive_timestamp(self, contact):
+        """this function update the timeStamp of each client
+        when it send the alive message so it will not be considered as an offline client
+
+        Args:
+            contact (string): the if of the contact to be updated
+        """
         for c in server_clients:
             if(c.clientID == int(contact.replace("\x00","").strip())):
                 c.timeStamp = time.time()
 
     def send_to_client(self, c, message):
+        """this function send the formatted message to a client
+
+        Args:
+            c (clientThread)
+            message (string)
+        """
         if(c != None):
             c.clientSocket.send(message.encode())
         else:
@@ -69,6 +99,9 @@ class ClientThread(threading.Thread):
 
 
     def receive_messages(self):
+        """this function keep listening for client messages and pass them to the
+        handle_received_message function
+        """
         while True:
             try:
                 message = self.clientSocket.recv(1024)
@@ -80,7 +113,12 @@ class ClientThread(threading.Thread):
             self.handle_received_message(message.decode())
 
     def handle_received_message(self, message):
-        #@Todo: handle duplicated client_id
+        """this function split the message into its component
+        and then deal with it based on its tag
+
+        Args:
+            message (string)
+        """
         msg_dest_id = message[0:8]
         msg_source_id = message[8:16]
         msg_prefix = message[16:29].strip()
@@ -107,7 +145,6 @@ class ClientThread(threading.Thread):
         elif(msg_tag == "General"):
             for c in server_clients:
                 if(c.clientID == int(msg_dest_id.replace("\x00", "").strip())):
-                    # dest_address = c.clientAddress
                     self.send_to_client(c,message)
 
         elif(msg_tag == "List"):
@@ -119,16 +156,30 @@ class ClientThread(threading.Thread):
             self.handle_quit(msg_source_id.strip())
             
     def ask_for_new_clientid(self, dest_id):
+        """if the client id is already exist it will ask the client
+        to provide a new unique id
+
+        Args:
+            dest_id (string)
+        """
         message = self.format_message(dest_id, "NVID", "")[0]
         self.send_to_client(None, message)
     
     def is_clientid_duplicated(self, c_id):
+        """check if client id provided by the new client
+        exist in the server_clients list
+
+        Args:
+            c_id (string)
+        """
         for c in server_clients:
             if c.clientID == c_id:
                 return True
         return False
     
     def send_list_to_client(self):
+        """send the clients list to the client
+        """
         contacts = ""
         msg_source_id = "{}".format(self.clientID).ljust(8, '\0')
         for c in server_clients:
@@ -141,6 +192,10 @@ class ClientThread(threading.Thread):
 
 
 def remove_offline_clients():
+    """check if time stamp of a client is > interval_of alive
+    and remove it if so.
+    """
+    global server_clients
     for c in server_clients:
         if(time.time()-c.timeStamp > interval_of_alive):
             server_clients.remove(c)
@@ -150,6 +205,8 @@ def remove_offline_clients():
         
 
 def set_remove_offline_contacts_interval():
+    """timer thread to check the clients alive timestamp periodically
+    """
 
     def recursive_interval():
         set_remove_offline_contacts_interval()
@@ -160,6 +217,9 @@ def set_remove_offline_contacts_interval():
 
 
 def listen_to_connections(server):
+    """keep listening for connection requests and accepted them,
+    them create a new object of ClientThread class for each new connection
+    """
     while True:
         server.listen(1)
         clientsock, clientAddress = server.accept()
