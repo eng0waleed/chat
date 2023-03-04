@@ -52,24 +52,19 @@ class ClientThread(threading.Thread):
     def handle_quit(self, clientId):
         quit_message = self.format_message("{}".format(self.clientID), "Quit", "")
         self.send_to_client(None, quit_message[0])
-        
-
         for c in server_clients:
             if(c.clientID == clientId):
                 server_clients.remove(c)
 
     def add_alive_timestamp(self, contact):
-        print(int(contact.replace("\x00", "").strip()))
         for c in server_clients:
             if(c.clientID == int(contact.replace("\x00","").strip())):
                 c.timeStamp = time.time()
 
     def send_to_client(self, c, message):
         if(c != None):
-            print("sending to "+str(c.clientAddress))
             c.clientSocket.send(message.encode())
         else:
-            print("sending to "+str(self.clientAddress))
             self.clientSocket.send(message.encode())
 
 
@@ -86,22 +81,18 @@ class ClientThread(threading.Thread):
 
     def handle_received_message(self, message):
         #@Todo: handle duplicated client_id
-        print(message)
         msg_dest_id = message[0:8]
         msg_source_id = message[8:16]
         msg_prefix = message[16:29].strip()
         msg_tag = msg_prefix.split("(")[1].split(")")[0]
-        print(msg_tag)
         msg = message[29:256]
         if(msg_tag == "Connect"):
             alive_interval_message = self.format_message(
             msg_source_id, "alive", "{}".format(interval_of_alive))
-            print(alive_interval_message[0])
             self.send_to_client(None,alive_interval_message[0])
             time.sleep(2)
 
             is_id_exist = self.is_clientid_duplicated(int(msg_source_id.replace("\x00", "").strip()))
-            print("is_id_exist : ",is_id_exist)
             if is_id_exist:
                 self.ask_for_new_clientid(msg_source_id)
             else:
@@ -109,6 +100,9 @@ class ClientThread(threading.Thread):
                 server_clients.append(self)
                 avid_message = self.format_message(msg_source_id, "AVID", "")
                 self.send_to_client(None, avid_message[0])
+                for c in server_clients:
+                    c.send_list_to_client()
+
 
         elif(msg_tag == "General"):
             for c in server_clients:
@@ -117,12 +111,7 @@ class ClientThread(threading.Thread):
                     self.send_to_client(c,message)
 
         elif(msg_tag == "List"):
-            contacts = ""
-            for c in server_clients:
-                contacts += str(c.clientID).ljust(8, '\0')
-            list_message = self.format_message(msg_source_id, "List", contacts)[0]
-            self.send_to_client(None,list_message)
-
+            self.send_list_to_client()
         elif(msg_tag == "Alive"):
             self.add_alive_timestamp(msg_source_id.strip())
 
@@ -138,6 +127,16 @@ class ClientThread(threading.Thread):
             if c.clientID == c_id:
                 return True
         return False
+    
+    def send_list_to_client(self):
+        contacts = ""
+        msg_source_id = "{}".format(self.clientID).ljust(8, '\0')
+        for c in server_clients:
+            contacts += str(c.clientID).ljust(8, '\0')
+        list_message = self.format_message(
+            msg_source_id, "List", contacts)[0]
+        self.send_to_client(None, list_message)
+
 
 
 
@@ -146,6 +145,9 @@ def remove_offline_clients():
         if(time.time()-c.timeStamp > interval_of_alive):
             server_clients.remove(c)
             print("Client {} disconnected !".format(c.clientID))
+            for c in server_clients:
+                c.send_list_to_client()
+        
 
 def set_remove_offline_contacts_interval():
 

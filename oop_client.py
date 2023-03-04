@@ -78,10 +78,8 @@ def handle_received_message(message):
     print("[{}]: {}".format(msg_source_id, msg))
 
     if(msg_tag == "NVID"):
-        print("NVID [{}]: {}".format(msg_source_id, msg))
         ask_for_new_id()
     elif(msg_tag == "AVID"):
-        print("AVID [{}]: {}".format(msg_source_id, msg))
         sender_thread = threading.Thread(target=show_available_options)
         sender_thread.start()
         sender_thread.do_run = True
@@ -107,7 +105,7 @@ def set_online_contact_list(list):
     num_of_contacts = int(len(list)/8)
     contacts_list = []
     print("====================")
-    print("Your contacts list :")
+    print("Your updated contacts list :")
     print("you have {} contact/s".format(num_of_contacts))
 
     for c in range(num_of_contacts):
@@ -253,7 +251,6 @@ def show_help():
 def receive_messages():
     while getattr(receiver_thread,"do_run", True):
         message = client.recv(1024)
-        print("to test receive")
         handle_received_message(message.decode())
     client.close()
 
